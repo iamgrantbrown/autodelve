@@ -3,7 +3,7 @@ A simple AI-powered Discord to answer questions based on a set of documents.
 
 > **Note:** This repo is a work in progress.
 >
-> ## TODOs
+### TODO
 1. Integrate with Discord.js
 2. Better documentation
 
