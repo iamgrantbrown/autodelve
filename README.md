@@ -1,14 +1,11 @@
-> **Note:** This repo is a work in progress.
+# autodelve
+A simple AI-powered Discord to answer questions based on a set of documents.
 
-## TODOs
+> **Note:** This repo is a work in progress.
+>
+> ## TODOs
 1. Integrate with Discord.js
 2. Better documentation
-
-
-# autodelve
-
-
-A simple AI-powered Discord to answer questions based on a set of documents.
 
 ## Setup
 
