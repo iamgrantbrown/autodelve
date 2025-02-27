@@ -64,48 +64,42 @@ function downloadWebsite(url: string, maxDepth: number = 3): Promise<Map<string,
 
 export async function download(url: string) {
   const websiteContent = await downloadWebsite(url);
-
-  // Save each page to disk
-  for (const [pageUrl, html] of websiteContent.entries()) {
-    try {
-      // Create a filename from the URL
-      const filename = pageUrl
-        .replace(/^https?:\/\//, '')
-        .replace(/[^a-zA-Z0-9]/g, '_')
-        .replace(/_+/g, '_') + '.md';
-      
-      const filePath = path.join('content', filename);
-      
-      // Convert HTML to Markdown before saving
-      const markdown = await convertHTMLToMarkdown(html);
-      
-      // Write the Markdown content to file
-      await Bun.write(filePath, markdown);
-      console.log(`Saved ${pageUrl} to ${filePath} (as Markdown)`);
-    } catch (error) {
-      console.error(`Failed to save ${pageUrl}:`, error);
-    }
-  }
-
-  console.log(`Website content saved to 'content' directory`);
-}
-
-export async function readMarkdownFiles(): Promise<Array<{ name: string, content: string }>> {
-  const contentDir = 'content';
-const files = await readdir(contentDir);
   
-  const markdownFiles = files.filter(file => file.endsWith('.md'));
+  // Convert the Map to an array of objects with url and content fields
+  const contentArray = Array.from(websiteContent.entries()).map(([pageUrl, html]) => {
+    return {
+      url: pageUrl,
+      content: convertHTMLToMarkdown(html) // Convert HTML to Markdown
+    };
+  });
   
-  const result = await Promise.all(
-    markdownFiles.map(async (filename) => {
-      const filePath = path.join(contentDir, filename);
-      const content = await Bun.file(filePath).text();
+  // Wait for all conversions to complete
+  const resolvedContentArray = await Promise.all(
+    contentArray.map(async (item) => {
       return {
-        name: filename,
-        content
+        url: item.url,
+        content: await item.content
       };
     })
   );
   
-  return result;
+  // Save all content to a single JSON file
+  const filePath = path.join('content', 'website_content.json');
+  await Bun.write(filePath, JSON.stringify(resolvedContentArray, null, 2));
+  
+  console.log(`Website content saved to ${filePath}`);
+}
+
+export async function readMarkdownFiles(): Promise<Array<{ url: string, content: string }>> {
+  const filePath = path.join('content', 'website_content.json');
+  
+  try {
+    const fileContent = await Bun.file(filePath).text();
+    const contentArray = JSON.parse(fileContent);
+    
+    return contentArray;
+  } catch (error) {
+    console.error('Failed to read website content:', error);
+    return [];
+  }
 }
