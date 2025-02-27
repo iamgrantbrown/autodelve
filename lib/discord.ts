@@ -1,70 +1,80 @@
-import { readFileSync } from "fs";
 import {
-  ChannelType,
   Client,
   GatewayIntentBits,
   Message,
-  Partials,
+  Partials
 } from "discord.js";
 import { ask } from "./ask";
+import { appendFileSync, existsSync, mkdirSync } from "fs";
+import path from "path";
 
-
-// const STREAMING_INDICATOR = " ⚪";
-
-type MessageRole = "assistant" | "user" | "system";
-
-type MessageHistoryEntry = {
-  role: MessageRole;
-  content: string;
-  timestamp: number;
-  userId: string;
-};
-
-const messageHistory = new Map<string, MessageHistoryEntry[]>(); // In-memory message history map
-
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    // GatewayIntentBits.DirectMessages,
-  ],
-  partials: [Partials.Channel, Partials.Message], // Remove to disable DMs
-});
-
-client.on("ready", () => {
-  console.log(`Logged in as ${client.user!.tag}!`);
-  // listAccessibleChannels(client);
-});
-
-client.on("debug", console.log);
-client.on("warn", console.log);
-client.on("error", console.error);
-
-client.on("messageCreate", async (message: Message) => {
-
-  // console.log(message.content);
-  console.log(
-    `Received message: "${message.content}" from ${message.author.tag} in channel ${message.channel.id} (${message.channel.type})`,
-  );
-
-  if (message.author.tag === 'samhogan') {
-    const content = message.content;
-
-    const answer = await ask(content);
-    message.reply(answer);
+/**
+ * Stores a question-answer pair in a JSONL file on disk
+ * @param question The user's question
+ * @param answer The bot's answer
+ */
+function storeMessage(question: string, answer: string): void {
+  // Create data directory if it doesn't exist
+  const dataDir = path.join(process.cwd(), "logs");
+  if (!existsSync(dataDir)) {
+    mkdirSync(dataDir, { recursive: true });
   }
 
-});
+  const filePath = path.join(dataDir, "answers.jsonl");
 
+  // Create a record with timestamp
+  const record = {
+    timestamp: new Date().toISOString(),
+    question,
+    answer
+  };
+
+  // Append the JSON record as a new line to the file
+  appendFileSync(filePath, JSON.stringify(record) + "\n");
+
+  console.log(`Stored Q&A pair in ${filePath}`);
+}
 
 /**
  * Connects the Discord bot to the Discord API
  * @returns The Discord client instance
  */
 export async function connect(): Promise<Client> {
+  const client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+    ],
+    partials: [Partials.Channel, Partials.Message],
+  });
+
+  client.on("ready", () => {
+    console.log(`Logged in as ${client.user!.tag}!`);
+  });
+
+  client.on("debug", console.log);
+  client.on("warn", console.log);
+  client.on("error", console.error);
+
+  client.on("messageCreate", async (message: Message) => {
+
+    // console.log(message.content);
+    console.log(
+      `Received message: "${message.content}" from ${message.author.tag} in channel ${message.channel.id} (${message.channel.type})`,
+    );
+    const content = message.content;
+    const answer = await ask(content);
+
+    if (answer) {
+      storeMessage(content, answer);
+      message.reply(answer);
+    }
+
+  });
+
   await client.login(process.env.DISCORD_BOT_TOKEN);
-  console.log("Kuzco Discord LLM Chat bot is now running...");
+  console.log("Autodelve is now running...");
   return client;
 }
 

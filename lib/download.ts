@@ -2,7 +2,6 @@ import * as cheerio from 'cheerio';
 import path from 'path';
 import { URL } from 'url';
 import { convertHTMLToMarkdown } from './convertHTML';
-import { readdir  } from 'fs/promises';
 
 function downloadWebsite(url: string, maxDepth: number = 3): Promise<Map<string, string>> {
   const visited = new Map<string, string>();
