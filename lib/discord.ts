@@ -58,6 +58,9 @@ export async function connect(): Promise<Client> {
   client.on("error", console.error);
 
   client.on("messageCreate", async (message: Message) => {
+    
+    // Ignore messages from the bot itself
+    if (message.author.id === client.user!.id) return;
 
     // console.log(message.content);
     console.log(
@@ -70,7 +73,6 @@ export async function connect(): Promise<Client> {
       storeMessage(content, answer);
       message.reply(answer);
     }
-
   });
 
   await client.login(process.env.DISCORD_BOT_TOKEN);
