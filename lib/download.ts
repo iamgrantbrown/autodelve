@@ -2,6 +2,7 @@ import * as cheerio from 'cheerio';
 import path from 'path';
 import { URL } from 'url';
 import { convertHTMLToMarkdown } from './convertHTML';
+import * as fs from 'fs';
 
 function downloadWebsite(url: string, maxDepth: number = 3): Promise<Map<string, string>> {
   const visited = new Map<string, string>();
@@ -81,6 +82,12 @@ export async function download(url: string) {
       };
     })
   );
+  
+  // Ensure the content directory exists
+  const contentDir = path.join('content');
+  if (!fs.existsSync(contentDir)) {
+    fs.mkdirSync(contentDir, { recursive: true });
+  }
   
   // Save all content to a single JSON file
   const filePath = path.join('content', 'website_content.json');
