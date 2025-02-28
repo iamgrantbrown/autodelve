@@ -13,6 +13,30 @@ const input = args[1];
 const contentPath = path.join('content', 'website_content.json');
 const contentExists = fs.existsSync(contentPath);
 
+// Create a simple HTTP server to keep the process alive and satisfy deployment requirements
+function startHttpServer() {
+  const port = process.env.PORT || 3000;
+  
+  const server = Bun.serve({
+    port: port,
+    fetch(req) {
+      const url = new URL(req.url);
+      
+      if (url.pathname === '/health') {
+        return new Response('OK', { status: 200 });
+      }
+      
+      return new Response('AutoDelve Bot is running!', { 
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    },
+  });
+  
+  console.log(`HTTP server listening on port ${port}`);
+  return server;
+}
+
 if (command === 'download' && input) {
   download(input);
 } else if (command === 'ask' && input) {
@@ -28,5 +52,9 @@ if (command === 'download' && input) {
     console.log('Download complete. Starting bot...');
   }
   
+  // Start the Discord bot
   connect();
+  
+  // Start HTTP server to satisfy deployment requirements
+  startHttpServer();
 }

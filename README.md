@@ -123,6 +123,15 @@ bun index.ts
 - **"command not found: bun"**: Run `source ~/.bash_profile` or add Bun to your PATH
 - **Discord connection issues**: Make sure you've enabled the Message Content Intent in the Discord Developer Portal
 - **Bot not responding to questions**: Check if the question is related to the indexed documentation
+- **"Port scan timeout reached, no open ports detected"**: This error occurs on some deployment platforms that require services to bind to a port. The latest version of AutoDelve includes an HTTP server that listens on the port specified by the `PORT` environment variable (defaults to 3000). Make sure you're using the latest version of the code.
+
+### Deployment Platform-Specific Notes
+
+#### Render, Fly.io, and similar platforms
+These platforms require your application to bind to a port specified by the `PORT` environment variable. The bot now includes a simple HTTP server that listens on this port to satisfy this requirement. No additional configuration is needed.
+
+#### Railway
+For Railway deployments, make sure to set the `PORT` environment variable in your project settings.
 
 ## Contributing
 
