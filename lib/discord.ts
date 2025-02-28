@@ -72,6 +72,9 @@ export async function connect(): Promise<Client> {
     if (answer) {
       storeMessage(content, answer);
       message.reply(answer);
+    } else {
+      // Provide feedback when the bot decides not to answer
+      message.reply("I'm sorry, but I don't have enough information in my knowledge base to answer that question. Please try asking something related to the Private AI documentation.");
     }
   });
 
