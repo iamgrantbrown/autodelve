@@ -114,7 +114,7 @@ export function listAccessibleChannels(client: Client): void {
   });
 }
 
-// If this file is run directly, connect the bot
-if (require.main === module) {
-  connect().catch(console.error);
-}
+// Removed Node.js specific check that doesn't work in Bun
+// if (require.main === module) {
+//   connect().catch(console.error);
+// }
