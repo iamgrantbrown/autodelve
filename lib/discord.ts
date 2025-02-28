@@ -8,6 +8,30 @@ import { ask } from "./ask";
 import { appendFileSync, existsSync, mkdirSync } from "fs";
 import path from "path";
 
+// Rate limiting implementation
+const userRateLimits = new Map<string, number>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute in ms
+const MAX_REQUESTS_PER_WINDOW = 5;
+
+function isRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const userRequests = userRateLimits.get(userId) || 0;
+  
+  if (userRequests >= MAX_REQUESTS_PER_WINDOW) {
+    return true;
+  }
+  
+  userRateLimits.set(userId, userRequests + 1);
+  
+  // Reset rate limit after window expires
+  setTimeout(() => {
+    const currentRequests = userRateLimits.get(userId) || 0;
+    userRateLimits.set(userId, Math.max(0, currentRequests - 1));
+  }, RATE_LIMIT_WINDOW);
+  
+  return false;
+}
+
 /**
  * Stores a question-answer pair in a JSONL file on disk
  * @param question The user's question
@@ -36,6 +60,28 @@ function storeMessage(question: string, answer: string): void {
 }
 
 /**
+ * Checks if a user has permission to use the bot
+ * @param message The Discord message
+ * @returns Boolean indicating if the user has permission
+ */
+function hasPermission(message: Message): boolean {
+  // Check if user has a specific role
+  const requiredRoleId = process.env.REQUIRED_ROLE_ID;
+  
+  // If no required role is configured, allow all users
+  if (!requiredRoleId) return true;
+  
+  // DMs don't have member info, so we need to handle that case
+  if (!message.guild || !message.member) {
+    // For DMs, check if we want to allow them based on environment variable
+    return process.env.ALLOW_DMS === 'true';
+  }
+  
+  // Check if the user has the required role
+  return message.member.roles.cache.has(requiredRoleId);
+}
+
+/**
  * Connects the Discord bot to the Discord API
  * @returns The Discord client instance
  */
@@ -61,6 +107,18 @@ export async function connect(): Promise<Client> {
     
     // Ignore messages from the bot itself
     if (message.author.id === client.user!.id) return;
+
+    // Check if user is rate limited
+    if (isRateLimited(message.author.id)) {
+      message.reply("You're sending too many requests. Please wait a moment before asking another question.");
+      return;
+    }
+    
+    // Check if user has permission to use the bot
+    if (!hasPermission(message)) {
+      message.reply("You don't have permission to use this bot. Please contact an administrator if you believe this is an error.");
+      return;
+    }
 
     // console.log(message.content);
     console.log(

@@ -133,6 +133,41 @@ These platforms require your application to bind to a port specified by the `POR
 #### Railway
 For Railway deployments, make sure to set the `PORT` environment variable in your project settings.
 
+## Security
+
+AutoDelve includes several security features to protect your bot and users:
+
+### Environment Variable Validation
+- Validates required environment variables at startup
+- Prevents the bot from running with missing credentials
+
+### Rate Limiting
+- Discord message rate limiting (5 requests per minute per user)
+- HTTP server rate limiting (30 requests per minute per IP)
+- Prevents abuse and excessive API costs
+
+### Input Validation
+- Sanitizes user input to remove control characters
+- Limits question length to 500 characters
+- Prevents potential injection attacks
+
+### Access Control
+- Optional role-based access control for Discord
+- Set `REQUIRED_ROLE_ID` in your `.env` file to restrict bot usage to users with a specific role
+- Set `ALLOW_DMS=true` to allow direct messages to the bot
+
+### HTTP Security Headers
+- Implements security headers on the HTTP server
+- Prevents common web vulnerabilities
+
+### Additional Environment Variables
+
+```
+# Optional security settings
+REQUIRED_ROLE_ID=your_discord_role_id  # Restrict bot to users with this role
+ALLOW_DMS=true                         # Allow direct messages to the bot
+```
+
 ## Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
