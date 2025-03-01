@@ -82,6 +82,87 @@ function hasPermission(message: Message): boolean {
 }
 
 /**
+ * Splits a long message into multiple parts that fit within Discord's character limit
+ * @param content The message content to split
+ * @param maxLength Maximum length for each part (default: 1900 to leave room for part indicators)
+ * @returns Array of message parts
+ */
+function splitLongMessage(content: string, maxLength: number = 1900): string[] {
+  if (!content || content.length <= maxLength) {
+    return [content];
+  }
+
+  const parts: string[] = [];
+  let currentPart = '';
+  
+  // Split by paragraphs first (try to keep logical sections together)
+  const paragraphs = content.split('\n\n');
+  
+  for (const paragraph of paragraphs) {
+    // If a single paragraph is too long, we'll need to split it
+    if (paragraph.length > maxLength) {
+      // If current part has content, push it to parts array
+      if (currentPart) {
+        parts.push(currentPart);
+        currentPart = '';
+      }
+      
+      // Split the long paragraph
+      let remainingText = paragraph;
+      while (remainingText.length > 0) {
+        // Find a good breaking point (preferably at a sentence end)
+        let breakPoint = maxLength;
+        if (remainingText.length > maxLength) {
+          // Try to find a sentence end (., !, ?) within the last 200 characters of the limit
+          const searchArea = remainingText.substring(maxLength - 200, maxLength);
+          const lastSentenceEnd = Math.max(
+            searchArea.lastIndexOf('. '),
+            searchArea.lastIndexOf('! '),
+            searchArea.lastIndexOf('? ')
+          );
+          
+          if (lastSentenceEnd !== -1) {
+            breakPoint = maxLength - 200 + lastSentenceEnd + 2; // +2 to include the period and space
+          } else {
+            // If no sentence end, try to break at a space
+            const lastSpace = remainingText.lastIndexOf(' ', maxLength);
+            if (lastSpace !== -1) {
+              breakPoint = lastSpace + 1; // +1 to include the space
+            }
+          }
+        }
+        
+        parts.push(remainingText.substring(0, breakPoint));
+        remainingText = remainingText.substring(breakPoint);
+      }
+    } else if (currentPart.length + paragraph.length + 2 > maxLength) {
+      // If adding this paragraph would exceed the limit, start a new part
+      parts.push(currentPart);
+      currentPart = paragraph;
+    } else {
+      // Add paragraph to current part
+      if (currentPart) {
+        currentPart += '\n\n' + paragraph;
+      } else {
+        currentPart = paragraph;
+      }
+    }
+  }
+  
+  // Add the last part if there's anything left
+  if (currentPart) {
+    parts.push(currentPart);
+  }
+  
+  // Add part indicators if there are multiple parts
+  if (parts.length > 1) {
+    return parts.map((part, index) => `[Part ${index + 1}/${parts.length}]\n\n${part}`);
+  }
+  
+  return parts;
+}
+
+/**
  * Connects the Discord bot to the Discord API
  * @returns The Discord client instance
  */
@@ -129,7 +210,27 @@ export async function connect(): Promise<Client> {
 
     if (answer) {
       storeMessage(content, answer);
-      message.reply(answer);
+      
+      // Split long messages to avoid Discord's character limit
+      const messageParts = splitLongMessage(answer);
+      
+      // Send each part as a separate message
+      for (const part of messageParts) {
+        try {
+          await message.reply(part);
+        } catch (error) {
+          console.error('Error sending message part:', error);
+          // If we still have an error, send a simplified message
+          if (messageParts.length > 1) {
+            try {
+              await message.reply("I've prepared a detailed answer, but it's too long for Discord. Please ask a more specific question for a shorter response.");
+            } catch (innerError) {
+              console.error('Error sending fallback message:', innerError);
+            }
+            break; // Stop trying to send more parts
+          }
+        }
+      }
     } else {
       // Provide feedback when the bot decides not to answer
       message.reply("I'm sorry, but I don't have enough information in my knowledge base to answer that question. Please try asking something related to the Private AI documentation.");

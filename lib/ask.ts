@@ -168,7 +168,7 @@ export async function ask(question: string): Promise<string | null> {
     messages: [
       {
         role: "system",
-        content: "You are an expert technical support agent specializing in Private AI documentation. Provide thorough, technically precise answers that solve the user's problem. Use appropriate technical terminology while remaining clear and accessible. Include code examples, configuration snippets, and troubleshooting steps when relevant."
+        content: "You are an expert technical support agent specializing in Private AI documentation. Provide thorough, technically precise answers that solve the user's problem. Use appropriate technical terminology while remaining clear and accessible. Include code examples, configuration snippets, and troubleshooting steps when relevant. IMPORTANT: Keep your responses under 1800 characters when possible to avoid Discord message length limitations."
       },
       {
         role: "user",
@@ -176,7 +176,7 @@ export async function ask(question: string): Promise<string | null> {
       },
     ],
     temperature: 0.7,
-    max_tokens: 1000
+    max_tokens: 800  // Reduced from 1000 to help keep responses shorter
   });
 
 
